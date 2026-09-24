@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>Spraket</title>
+<style>
+  :root { --bg:#08090c; --kort:#0e1016; --kant:#1c2029; --dim:#5a6070; --txt:#c8cede;
+          --gron:#3ddc84; --bla:#4d9bff; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); padding:28px 20px 60px;
+         font:14px/1.6 ui-monospace,"Departure Mono",Menlo,monospace; }
+  main { max-width:680px; margin:0 auto; }
+  h1 { font-size:19px; margin:0 0 4px; font-weight:600; letter-spacing:1px; }
+  h2 { font-size:13px; margin:30px 0 10px; color:var(--dim); font-weight:600;
+       text-transform:uppercase; letter-spacing:1.5px; }
+  p.lead { color:var(--dim); margin:0 0 6px; }
+  a { color:var(--bla); }
+  .kort { background:var(--kort); border:1px solid var(--kant); border-radius:8px; padding:16px; }
+  .karna { border-left:2px solid var(--gron); padding:4px 0 4px 16px; margin:0;
+           font-size:16px; line-height:2; letter-spacing:1px; }
+  .karna .par { color:var(--txt); }
+  .karna .oversatt { color:var(--dim); font-size:13px; letter-spacing:0; }
+  .vand { display:grid; grid-template-columns:1fr auto 1fr; gap:14px; align-items:center;
+          text-align:center; margin:4px 0 0; }
+  .vand .cell { background:#12151c; border:1px solid var(--kant); border-radius:8px;
+                padding:14px 10px; cursor:pointer; }
+  .vand .cell:hover { border-color:#39404d; }
+  .vand .ord { font-size:20px; letter-spacing:3px; }
+  .vand .sub { color:var(--dim); font-size:12px; margin-top:4px; }
+  .vand .pil { color:var(--dim); font-size:18px; }
+  table { width:100%; border-collapse:collapse; }
+  td, th { padding:6px 8px; border-bottom:1px solid var(--kant); text-align:left; }
+  th { color:var(--dim); font-weight:600; font-size:11px; text-transform:uppercase;
+       letter-spacing:1px; }
+  td.tom { color:#343a46; }
+  .not { color:var(--dim); font-size:12px; margin-top:10px; }
+  tr.foreslagen td { color:#4c525f; font-style:italic; }
+  button.ja { background:#151922; border:1px solid var(--kant); color:var(--dim);
+              font:inherit; font-size:11px; padding:2px 10px; border-radius:5px;
+              cursor:pointer; }
+  button.ja:hover { color:var(--gron); border-color:#2a4a38; }
+  .grind { color:var(--dim); font-size:12px; border-left:2px solid var(--kant);
+           padding-left:12px; margin:0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>spraket</h1>
+  <p class="lead">
+    Tecken och stavelser. <a href="/config.html">installningar</a> ·
+    <a href="/">remsan</a>
+  </p>
+
+  <h2>H1 — New Language &amp;&amp; Sign Language</h2>
+  <div class="kort">
+    <p class="karna">
+      <span class="par">Ka-To</span> <span class="oversatt">(How are you)</span><br>
+      <span class="par">To-Ka</span> <span class="oversatt">(you are How)</span>
+    </p>
+    <p class="not">Claude Altairs karna. Star exakt som den ar.</p>
+  </div>
+
+  <h2>Regeln som ligger i paret</h2>
+  <div class="kort">
+    <div class="vand">
+      <div class="cell" data-sag="---___">
+        <div class="ord">Ka-To</div>
+        <div class="sub">fragar</div>
+      </div>
+      <div class="pil">⇄</div>
+      <div class="cell" data-sag="___---">
+        <div class="ord">To-Ka</div>
+        <div class="sub">konstaterar</div>
+      </div>
+    </div>
+    <p class="not">
+      Ordfoljden bar betydelsen — ingen partikel, ingen bojning, bara riktning.
+      Klicka for att hora paret. (Ljudet ar en platshallare tills Claude Altair satt tickarna.)
+    </p>
+  </div>
+
+  <h2>Ordboken</h2>
+  <div class="kort">
+    <table id="stavelser">
+      <tr><th>stavelse</th><th>betyder</th><th>tecken</th><th>tick</th></tr>
+    </table>
+    <p class="not">
+      Tomma falt vantar pa Claude Altair. Fyll dem i <code>sprak/ordbok.json</code>.
+    </p>
+  </div>
+
+  <h2>Oppna fragor</h2>
+  <div class="kort">
+    <p class="lead" style="margin:0">
+      Hur ser <strong>Ka</strong> och <strong>To</strong> ut som tecken?<br>
+      Ar ljud och tecken samma sprak eller tva?<br>
+      Hanger stavelserna ihop med remsans tre kanaler?
+    </p>
+    <p class="not">Ingen annan an Claude Altair svarar pa de har.</p>
+  </div>
+</main>
+
+<script type="module">
+import { vacka, saga } from '../tickspeak.js';
+
+const bok = await (await fetch('/sprak/ordbok.json')).json();
+const tab = document.getElementById('stavelser');
+for (const [stav, d] of Object.entries(bok.stavelser)) {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${stav}</td><td>${d.betyder}</td>` +
+    `<td class="${d.tecken ? '' : 'tom'}">${d.tecken ?? '—'}</td>` +
+    `<td class="${d.tick ? '' : 'tom'}">${d.tick ?? '—'}</td>`;
+  tab.appendChild(tr);
+}
+
+// --- grinden: forslag som inte talar forran du sagt ja -----------------
+async function ritaForslag() {
+  const f = await (await fetch('/sprak/forslag.json')).json();
+  const tab = document.getElementById('forslag');
+  const lista = f.forslag ?? [];
+  document.getElementById('grind-tomt').style.display = lista.length ? 'none' : '';
+  tab.innerHTML = lista.length
+    ? '<tr><th>stavelse</th><th>betyder</th><th>foreslagen av</th><th></th></tr>' : '';
+  for (const post of lista) {
+    const tr = document.createElement('tr');
+    tr.className = 'foreslagen';
+    tr.innerHTML = `<td>${post.stavelse}</td><td>${post.betyder ?? '—'}</td>` +
+      `<td>${post.av ?? 'okand'}</td>` +
+      `<td style="text-align:right"><button class="ja" data-ja="${post.stavelse}">ja</button></td>`;
+    tab.appendChild(tr);
+  }
+}
+await ritaForslag();
+
+document.body.addEventListener('click', async e => {
+  const ja = e.target.closest('[data-ja]');
+  if (!ja) return;
+  await fetch('/godkann', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ stavelse: ja.dataset.ja }),
+  });
+  location.reload();     // stavelsen har flyttat in i ordboken
+});
+
+document.body.addEventListener('click', e => {
+  const cell = e.target.closest('[data-sag]');
+  if (!cell) return;
+  vacka(); saga(cell.dataset.sag);
+});
+</script>
+</body>
+</html>

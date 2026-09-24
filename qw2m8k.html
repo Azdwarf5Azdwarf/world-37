@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>tick-speak-alfabetet: redigerbar, sparas lokalt (localStorage)</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 30rem; margin: 3rem auto; padding: 0 1rem; background: #111; color: #eee; }
+  textarea { width: 100%; height: 20rem; font-family: monospace; font-size: 1.1rem; background: #1c1c1c; color: #eee; border: 1px solid #444; border-radius: 4px; padding: .6rem; }
+  button { font-size: 1rem; padding: .5rem 1.2rem; margin-top: .8rem; cursor: pointer; }
+  #info { color: #888; font-size: .9rem; margin-top: 1rem; white-space: pre-line; }
+</style>
+</head>
+<body>
+<h1>alfabetet</h1>
+<p>En rad per bokstav: bokstav mellanslag kod. Redigera fritt, tryck spara.</p>
+<textarea id="text"></textarea><br>
+<button id="spara">spara</button>
+<div id="info"></div>
+<script>
+const NYCKEL = "tickspeak-alfabet-v1";
+
+const ORIGINAL = `a -_
+e __
+h --
+j -_-
+b --_-
+n ---
+t ___
+r --_
+s __-
+l -__
+d _--
+m _-_
+k ----
+g ____
+v -_-_
+f _-_-
+p --__
+c __--
+w -__-
+x _--_
+z _---
+q ---_`;
+
+document.getElementById("text").value = localStorage.getItem(NYCKEL) || ORIGINAL;
+
+document.getElementById("spara").addEventListener("click", () => {
+  const text = document.getElementById("text").value;
+  localStorage.setItem(NYCKEL, text);
+
+  const rader = text.trim().split("\n").map(r => r.trim().split(/\s+/));
+  let info = "sparat.";
+  for (const [bokstav1, kod1] of rader) {
+    for (const [bokstav2, kod2] of rader) {
+      if (bokstav1 !== bokstav2 && kod1 && kod2 && kod1.length < kod2.length && kod2.startsWith(kod1)) {
+        info += `\n${bokstav1} ar en del av ${bokstav2}`;
+      }
+    }
+  }
+  document.getElementById("info").textContent = info;
+});
+</script>
+</body>
+</html>

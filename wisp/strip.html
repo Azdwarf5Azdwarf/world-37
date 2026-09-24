@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>Wisp</title>
+<style>
+  :root { --bg:#08090c; --dim:#4a5060; --txt:#c8cede; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:var(--bg); color:var(--txt);
+              font:12px/1.4 ui-monospace,"Departure Mono",Menlo,monospace; overflow:hidden; }
+  #wrap { display:flex; flex-direction:column; height:100%; }
+  #strip { flex:1; width:100%; display:block; cursor:crosshair; }
+  #rad { display:flex; gap:10px; align-items:center; padding:4px 8px;
+         border-top:1px solid #1a1d24; color:var(--dim); white-space:nowrap; }
+  #ord { color:var(--txt); letter-spacing:3px; font-size:14px; }
+  .k { color:var(--dim); }
+  #r { color:#ff4d4d } #g { color:#3ddc84 } #b { color:#4d9bff }
+  #rad button, #rad a { background:none; border:1px solid #2a2f3a; color:var(--dim);
+           font:inherit; padding:1px 7px; border-radius:3px; cursor:pointer;
+           text-decoration:none; }
+  #ljud.pa { color:#3ddc84; border-color:#2a4a38; }
+  #hoger { margin-left:auto; display:flex; gap:8px; }
+  #panel { position:absolute; bottom:30px; max-height:62%; overflow-y:auto;
+           min-width:280px; max-width:min(440px, 94vw);
+           background:#0e1016; border:1px solid #2a2f3a; border-radius:8px;
+           padding:10px 12px; display:none; box-shadow:0 8px 30px #000a; }
+  #panel.syns { display:block; }
+  #panel h3 { margin:0 0 2px; font-size:13px; font-weight:600; letter-spacing:3px; }
+  #panel .nar { color:var(--dim); font-size:11px; }
+  #panel .klartext { color:var(--txt); margin:8px 0 6px; line-height:1.5; }
+  #panel ol { margin:0; padding:0; list-style:none; }
+  #panel li { display:flex; gap:8px; padding:3px 0; border-top:1px solid #1a1d24; }
+  #panel li .t { color:var(--dim); font-variant-numeric:tabular-nums; }
+  #panel li.gron .n { color:#3ddc84 } #panel li.rod .n { color:#ff4d4d }
+  #panel li.bla .n { color:#4d9bff }
+  #panel .tomt { color:var(--dim); padding:6px 0; }
+  #stang { position:absolute; top:6px; right:8px; color:var(--dim); cursor:pointer; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="strip"></canvas>
+  <div id="panel">
+    <span id="stang">×</span>
+    <h3 id="p-ord">___</h3>
+    <div class="nar" id="p-nar"></div>
+    <div class="klartext" id="p-klartext"></div>
+    <ol id="p-lista"></ol>
+  </div>
+  <div id="rad">
+    <span id="ord">___</span>
+    <span class="k">|</span>
+    <span id="r">fel 0</span>
+    <span id="g">jobb 0</span>
+    <span id="b">vantar 0</span>
+    <span class="k">|</span>
+    <span id="status">—</span>
+    <span id="hoger">
+      <button id="ljud">ljud av</button>
+      <a href="/sprak/sprak.html">spraket</a>
+      <a href="/config.html">installningar</a>
+    </span>
+  </div>
+</div>
+
+<script type="module">
+import { vacka, saga, installningar, sym } from './tickspeak.js';
+
+const UPPDATERA = 1000;
+let inst = await installningar();
+let handelser = [], ljudPa = false, sagt = null;
+let band = [];            // en post per agent: { agent, kol }
+let valdTid = null, valdAgent = null;
+
+const cv = document.getElementById('strip'), cx = cv.getContext('2d');
+const panel = document.getElementById('panel');
+const klocka = t => new Date(t * 1000).toLocaleTimeString('sv-SE');
+
+/** Delar loggen i ett band per agent, varje band i kolumner om en tick. */
+function raknaBand() {
+  const nu = Date.now();
+  const antal = Math.max(1, Math.ceil((cv.width || 1) / 6));
+  const agenter = [...new Set(handelser.map(h => h.agent ?? 'claude'))].sort();
+  if (!agenter.length) agenter.push('claude');
+
+  const karta = new Map(agenter.map(a => [a, {
+    agent: a,
+    kol: Array.from({ length: antal }, () => ({ r:0, g:0, b:0, h:[] })),
+  }]));
+
+  for (const h of handelser) {
+    const i = antal - 1 - Math.floor((nu - h.t * 1000) / inst.TICK_MS);
+    if (i < 0 || i >= antal) continue;
+    const k = karta.get(h.agent ?? 'claude').kol[i];
+    k.h.push(h);
+    if (h.err) k.r++;
+    else if (h.e === 'PostToolUse') k.g++;
+    else k.b++;                          // Notification / Stop = vantar pa dig
+  }
+  return [...karta.values()];
+}
+
+const farg = k => {
+  const r = Math.min(1, k.r / inst.MAX_ROD),
+        g = Math.min(1, k.g / inst.MAX_GRON),
+        b = Math.min(1, k.b / inst.MAX_BLA);
+  return (!r && !g && !b) ? '#12141a'
+    : `rgb(${18 + r*237},${20 + g*200},${26 + b*229})`;
+};
+
+const ordFor = k =>
+  sym(k.r / inst.MAX_ROD) + sym(k.g / inst.MAX_GRON) + sym(k.b / inst.MAX_BLA);
+
+function rita() {
+  const dpr = devicePixelRatio || 1;
+  cv.width = cv.clientWidth * dpr;
+  cv.height = cv.clientHeight * dpr;
+  band = raknaBand();
+
+  cx.fillStyle = '#08090c';
+  cx.fillRect(0, 0, cv.width, cv.height);
+
+  const bh = cv.height / band.length;
+  band.forEach((b, bi) => {
+    const bw = cv.width / b.kol.length;
+    b.kol.forEach((k, i) => {
+      cx.fillStyle = farg(k);
+      cx.fillRect(i * bw, bi * bh, Math.max(1, bw - dpr), bh - (band.length > 1 ? dpr : 0));
+    });
+    if (band.length > 1) {               // namnet pa agenten, diskret
+      cx.fillStyle = '#5a6070';
+      cx.font = `${11 * dpr}px ui-monospace, Menlo, monospace`;
+      cx.fillText(b.agent, 6 * dpr, bi * bh + 14 * dpr);
+    }
+  });
+
+  // statusraden sammanfattar alla agenter
+  const sista = band.map(b => b.kol[b.kol.length - 1]);
+  const s = sista.reduce((a, k) => ({ r:a.r+k.r, g:a.g+k.g, b:a.b+k.b }), { r:0,g:0,b:0 });
+  const ord = ordFor(s);
+  document.getElementById('ord').textContent = ord;
+  document.getElementById('r').textContent = 'fel ' + s.r;
+  document.getElementById('g').textContent = 'jobb ' + s.g;
+  document.getElementById('b').textContent = 'vantar ' + s.b;
+  document.getElementById('status').textContent =
+    s.r ? 'nagot brast' : s.g ? 'jobbar' : s.b ? 'vantar pa dig' : 'tyst';
+  document.title = ord + ' wisp';
+  if (ljudPa && ord !== sagt) saga(ord);   // en tick, ett ord
+  sagt = ord;
+
+  if (valdTid !== null && panel.classList.contains('syns')) {
+    // kolumnen ligger kvar i tiden aven nar remsan scrollar vidare
+    const antal = band[0].kol.length;
+    const i = antal - 1 - Math.floor((Date.now() - valdTid) / inst.TICK_MS);
+    if (i < 0) stang();
+    else { const p = ljudPa, t = valdTid; ljudPa = false;
+           visaKolumn(i, valdAgent); ljudPa = p; valdTid = t; }
+  }
+}
+
+// --- packa upp en kolumn: vad lag bakom fargen? (issue #5) ---------------
+const RAKNEORD = ['inga', 'ett', 'tva', 'tre', 'fyra', 'fem', 'sex', 'sju',
+                  'atta', 'nio', 'tio', 'elva', 'tolv'];
+const antalOrd = n => RAKNEORD[n] ?? String(n);
+
+/** Samma data som listan, men som en mening. analyze-monstret i minsta form. */
+function klartext(k) {
+  if (!k.h.length) return 'Ingenting hande har. Det ar ocksa nagot.';
+  const delar = [];
+  const verktyg = {};
+  for (const h of k.h) if (h.e === 'PostToolUse' && !h.err)
+    verktyg[h.tool ?? 'okant'] = (verktyg[h.tool ?? 'okant'] ?? 0) + 1;
+  for (const [namn, n] of Object.entries(verktyg).sort((a, b) => b[1] - a[1]))
+    delar.push(`${antalOrd(n)} ${namn}`);
+  if (k.r) delar.push(`${antalOrd(k.r)} ${k.r === 1 ? 'fel' : 'fel'}`);
+  if (k.b) delar.push(`vantade ${antalOrd(k.b)} ${k.b === 1 ? 'gang' : 'ganger'} pa dig`);
+  return delar.join(', ') + '.';
+}
+
+function visaKolumn(i, agent) {
+  const b = band.find(x => x.agent === agent) ?? band[0];
+  const k = b?.kol[i];
+  if (!k) return;
+  valdTid = Date.now() - (b.kol.length - 1 - i) * inst.TICK_MS;
+  valdAgent = b.agent;
+
+  const ord = ordFor(k);
+  document.getElementById('p-ord').textContent = ord;
+  document.getElementById('p-nar').textContent =
+    `${b.agent}  ·  ${klocka(valdTid / 1000)}  ·  ${inst.TICK_MS / 1000} s`;
+  document.getElementById('p-klartext').textContent = klartext(k);
+
+  const lista = document.getElementById('p-lista');
+  lista.innerHTML = k.h.length ? '' : '<li class="tomt">ingen rad i loggen</li>';
+  for (const h of k.h) {
+    const li = document.createElement('li');
+    li.className = h.err ? 'rod' : h.e === 'PostToolUse' ? 'gron' : 'bla';
+    li.innerHTML = `<span class="t">${klocka(h.t)}</span><span class="n">${h.tool ?? h.e}</span>`;
+    lista.appendChild(li);
+  }
+  panel.classList.add('syns');
+  if (ljudPa) saga(ord);
+}
+
+function stang() { panel.classList.remove('syns'); valdTid = null; valdAgent = null; }
+
+cv.onclick = e => {
+  if (!band.length) return;
+  const antal = band[0].kol.length;
+  const i = Math.min(antal - 1, Math.max(0, Math.floor(e.offsetX / (cv.clientWidth / antal))));
+  const bi = Math.min(band.length - 1,
+                      Math.floor(e.offsetY / (cv.clientHeight / band.length)));
+  visaKolumn(i, band[bi].agent);
+  panel.style.left = Math.min(Math.max(8, e.clientX - 140),
+                              cv.getBoundingClientRect().width - 300) + 'px';
+};
+document.getElementById('stang').onclick = stang;
+
+document.getElementById('ljud').onclick = e => {
+  ljudPa = !ljudPa;
+  if (ljudPa) { vacka(); saga('-_-'); }
+  e.target.textContent = ljudPa ? 'ljud pa' : 'ljud av';
+  e.target.classList.toggle('pa', ljudPa);
+};
+
+async function hamta() {
+  try { handelser = await (await fetch('/events.json')).json(); } catch (e) {}
+  rita();
+}
+hamta();
+setInterval(hamta, UPPDATERA);
+setInterval(async () => { inst = await installningar(); }, 5000);
+addEventListener('resize', rita);
+</script>
+</body>
+</html>

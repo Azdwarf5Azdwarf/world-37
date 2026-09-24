@@ -1,0 +1,516 @@
+<title>Kvicksilver till base57</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Source+Sans+3:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --ground:      #EEF1F0;
+    --surface:     #F8FAF9;
+    --edge:        #D3DAD8;
+    --edge-soft:   #E3E8E6;
+    --ink:         #12181A;
+    --ink-soft:    #4A5559;
+    --ink-faint:   #7C878B;
+    --hg-dark:     #6E767D;
+    --hg-mid:      #9BA3AA;
+    --hg-light:    #CFD5DA;
+    --glass:       #DFE6E6;
+    --accent:      #0E6B74;
+    --accent-soft: #D9EAEB;
+    --toxic:       #9A2F2A;
+    --glow:        rgba(14,107,116,.16);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0D1113;
+      --surface:     #151A1D;
+      --edge:        #293236;
+      --edge-soft:   #1F272A;
+      --ink:         #E7ECEB;
+      --ink-soft:    #A3AEB1;
+      --ink-faint:   #6F7B7F;
+      --hg-dark:     #5A6167;
+      --hg-mid:      #99A1A8;
+      --hg-light:    #E2E7EA;
+      --glass:       #1B2225;
+      --accent:      #4FBFC7;
+      --accent-soft: #16343A;
+      --toxic:       #D9756D;
+      --glow:        rgba(79,191,199,.18);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:      #0D1113;
+    --surface:     #151A1D;
+    --edge:        #293236;
+    --edge-soft:   #1F272A;
+    --ink:         #E7ECEB;
+    --ink-soft:    #A3AEB1;
+    --ink-faint:   #6F7B7F;
+    --hg-dark:     #5A6167;
+    --hg-mid:      #99A1A8;
+    --hg-light:    #E2E7EA;
+    --glass:       #1B2225;
+    --accent:      #4FBFC7;
+    --accent-soft: #16343A;
+    --toxic:       #D9756D;
+    --glow:        rgba(79,191,199,.18);
+  }
+
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font-family: "Source Sans 3", ui-sans-serif, system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 40px 24px 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+
+  /* ---- huvud ---- */
+  header { display: flex; flex-direction: column; gap: 10px; max-width: 62ch; }
+  .eyebrow {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  h1 {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400;
+    font-size: clamp(38px, 6vw, 62px);
+    line-height: 1.02;
+    letter-spacing: -.012em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  h1 em { font-style: italic; color: var(--accent); }
+  .lede { color: var(--ink-soft); font-size: 17px; margin: 0; max-width: 58ch; }
+
+  /* ---- instrument ---- */
+  .instrument {
+    display: grid;
+    grid-template-columns: minmax(200px, 260px) 1fr;
+    gap: 36px;
+    align-items: start;
+  }
+  @media (max-width: 720px) {
+    .instrument { grid-template-columns: 1fr; }
+  }
+
+  .tube-panel {
+    background: var(--surface);
+    border: 1px solid var(--edge);
+    padding: 18px 10px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  svg.thermo { width: 100%; max-width: 200px; height: auto; touch-action: none; cursor: ns-resize; display: block; }
+  svg.thermo:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+  .tick-label {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 9px;
+    fill: var(--ink-faint);
+  }
+  .hint {
+    font-size: 12px;
+    color: var(--ink-faint);
+    text-align: center;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    letter-spacing: .04em;
+  }
+  input[type="range"] { width: 100%; accent-color: var(--accent); }
+  input[type="range"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+  /* ---- lagren ---- */
+  .layers { display: flex; flex-direction: column; gap: 0; }
+  .layer {
+    display: grid;
+    grid-template-columns: 26px 1fr auto;
+    gap: 16px;
+    align-items: baseline;
+    padding: 20px 0;
+    border-top: 1px solid var(--edge-soft);
+  }
+  .layer:first-child { border-top: none; padding-top: 4px; }
+  .layer .n {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    color: var(--ink-faint);
+    letter-spacing: .06em;
+  }
+  .layer .name {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-size: 23px;
+    line-height: 1.2;
+  }
+  .layer .desc { grid-column: 2; font-size: 14px; color: var(--ink-soft); margin-top: 2px; max-width: 44ch; }
+  .layer .val {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-variant-numeric: tabular-nums;
+    font-size: 26px;
+    white-space: nowrap;
+    color: var(--ink);
+  }
+  .layer .val .unit { font-size: 13px; color: var(--ink-faint); margin-left: 4px; }
+  .layer.encoded { border-top: 1px solid var(--edge); }
+  .layer.encoded .val {
+    color: var(--accent);
+    font-weight: 500;
+    font-size: 30px;
+    padding: 2px 12px;
+    background: var(--accent-soft);
+    border-radius: 3px;
+  }
+
+  .roundtrip {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    align-items: baseline;
+    padding-top: 18px;
+    border-top: 1px dashed var(--edge);
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 13px;
+    color: var(--ink-soft);
+    overflow-x: auto;
+  }
+  .roundtrip b { color: var(--ink); font-weight: 500; }
+
+  /* ---- prov ---- */
+  section.samples { display: flex; flex-direction: column; gap: 14px; }
+  h2 {
+    font-family: "Instrument Serif", Georgia, serif;
+    font-weight: 400;
+    font-size: 28px;
+    margin: 0;
+  }
+  .table-scroll { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; min-width: 460px; font-size: 14px; }
+  th, td { text-align: right; padding: 9px 14px; border-bottom: 1px solid var(--edge-soft); }
+  th:first-child, td:first-child { text-align: left; }
+  th {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 400;
+    border-bottom: 1px solid var(--edge);
+  }
+  td { font-variant-numeric: tabular-nums; }
+  td.mono { font-family: "IBM Plex Mono", ui-monospace, monospace; color: var(--accent); }
+  tr.fixed td:first-child { color: var(--ink); }
+  tr.fixed td:first-child::after {
+    content: " fixpunkt";
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 10px;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  /* ---- not ---- */
+  .notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 28px; }
+  .note h3 {
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 400;
+    margin: 0 0 8px;
+  }
+  .note p { margin: 0 0 10px; font-size: 15px; color: var(--ink-soft); }
+  .note p strong { color: var(--ink); font-weight: 600; }
+  .toxic { color: var(--toxic); }
+  footer {
+    border-top: 1px solid var(--edge-soft);
+    padding-top: 16px;
+    font-family: "IBM Plex Mono", ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--ink-faint);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 22px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .layer .val, rect.mercury, rect.mercury-hi { transition: all .18s ease-out; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">world-37 &nbsp;/&nbsp; base57 &nbsp;/&nbsp; radix 59</div>
+    <h1>Kvicksilver till <em>base57</em></h1>
+    <p class="lede">Kvicksilvret vet inte vad temperatur ar. Det utvidgas. Grader ar en
+      overenskommelse ovanpa den rorelsen, och base57-strangen ar annu en overenskommelse
+      ovanpa graderna. Dra i pelaren och se de tre lagren rora sig tillsammans.</p>
+  </header>
+
+  <div class="instrument">
+    <div class="tube-panel">
+      <svg class="thermo" viewBox="0 0 170 530" role="slider" tabindex="0"
+           aria-label="Kvicksilverpelarens hojd i millimeter"
+           aria-valuemin="0" aria-valuemax="280" aria-valuenow="118" aria-valuetext="118,4 millimeter">
+        <defs>
+          <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%"   stop-color="var(--hg-dark)"/>
+            <stop offset="38%"  stop-color="var(--hg-light)"/>
+            <stop offset="62%"  stop-color="var(--hg-mid)"/>
+            <stop offset="100%" stop-color="var(--hg-dark)"/>
+          </linearGradient>
+        </defs>
+
+        <!-- glasrer -->
+        <rect x="60" y="26" width="22" height="418" rx="11" fill="var(--glass)" stroke="var(--edge)" stroke-width="1"/>
+        <circle cx="71" cy="472" r="27" fill="var(--glass)" stroke="var(--edge)" stroke-width="1"/>
+
+        <!-- kvicksilver -->
+        <circle cx="71" cy="472" r="22" fill="url(#hg)"/>
+        <rect id="mercury" class="mercury" x="64" y="200" width="14" height="270" rx="7" fill="url(#hg)"/>
+
+        <!-- etsad skala -->
+        <g id="ticks"></g>
+      </svg>
+      <input id="slider" type="range" min="0" max="280" step="0.2" value="118.4"
+             aria-label="Pelarhojd i millimeter">
+      <div class="hint">dra i roret</div>
+    </div>
+
+    <div class="layers">
+      <div class="layer">
+        <div class="n">01</div>
+        <div class="name">Fysik</div>
+        <div class="val"><span id="v-mm">118.4</span><span class="unit">mm pelare</span></div>
+        <p class="desc">Termisk utvidgning. Det enda som faktiskt hander i glaset.</p>
+      </div>
+
+      <div class="layer">
+        <div class="n">02</div>
+        <div class="name">Skala</div>
+        <div class="val"><span id="v-c">39.20</span><span class="unit">&deg;C</span></div>
+        <p class="desc">Tva etsade fixpunkter, 40 mm och 240 mm, och en rat linje daremellan.
+          Siffrorna ar pahittade av manniskor.</p>
+      </div>
+
+      <div class="layer encoded">
+        <div class="n">03</div>
+        <div class="name">Notation</div>
+        <div class="val" id="v-token">239U</div>
+        <p class="desc">Tre byte signerade centigrader, skrivna i bas 59 med ett URL-sakert
+          alfabete. Modulen heter base57 &mdash; skamtet ar namnet, matematiken ar 59.</p>
+      </div>
+
+      <div class="roundtrip">
+        <span>URL &nbsp;<b id="v-url">/matning/239U</b></span>
+        <span>avkodat &nbsp;<b id="v-back">39.20 &deg;C</b></span>
+        <span>byte &nbsp;<b id="v-bytes">0f 50</b></span>
+      </div>
+    </div>
+  </div>
+
+  <section class="samples">
+    <h2>Prov ur demon</h2>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr><th>Avlasning</th><th>Pelare</th><th>Skala</th><th>base57</th><th>Tecken</th></tr>
+        </thead>
+        <tbody id="samples"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="notes">
+    <div class="note">
+      <h3>Varfor kvicksilver forsvann</h3>
+      <p><span class="toxic">Kvicksilver (Hg) ar hogtoxiskt.</span> Sverige forbjod
+        matinstrument med kvicksilver <strong>1991&ndash;92</strong> och lade ett generellt
+        forbud <strong>1 juni 2009</strong>. Kvar star skalan &mdash; den fungerar lika bra
+        pa sprit, galinstan eller en digital givare.</p>
+    </div>
+    <div class="note">
+      <h3>Samma sak i tva repon</h3>
+      <p>Termometern ar <strong>intelligens utanfor kroppen</strong>: designen finns redan,
+        du behover den for att kunna mata. En kodare ar samma sak i mjukvara &mdash; den bar
+        en overenskommelse du slipper halla i huvudet.</p>
+    </div>
+    <div class="note">
+      <h3>Vad kodningen inte ar</h3>
+      <p>base57 ar <strong>ingen sakerhet</strong>. Alfabetet undviker <code>/</code> och
+        <code>..</code>, men det ar en bieffekt av teckenuppsattningen, inte ett skydd.
+        Kalibrering gor rorelsen lasbar &mdash; den gor den inte sann.</p>
+    </div>
+  </div>
+
+  <footer>
+    <span>m4t7bq.py</span>
+    <span>q3v8mz.md</span>
+    <span>research/mercury-thermometers-sweden.md</span>
+    <span>alfabete 23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz-_</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz-_";
+  var BASE = BigInt(ALPHABET.length); // 59
+
+  function encode(bytes) {
+    var n = 0n, i;
+    for (i = 0; i < bytes.length; i++) n = n * 256n + BigInt(bytes[i]);
+    var out = "";
+    while (n > 0n) {
+      var r = n % BASE;
+      n = n / BASE;
+      out = ALPHABET[Number(r)] + out;
+    }
+    var lead = 0;
+    for (i = 0; i < bytes.length && bytes[i] === 0; i++) lead++;
+    return ALPHABET[0].repeat(lead) + out;
+  }
+
+  function decode(str) {
+    var n = 0n, i;
+    for (i = 0; i < str.length; i++) n = n * BASE + BigInt(ALPHABET.indexOf(str[i]));
+    var lead = 0;
+    for (i = 0; i < str.length && str[i] === ALPHABET[0]; i++) lead++;
+    var body = [];
+    while (n > 0n) { body.unshift(Number(n % 256n)); n = n / 256n; }
+    while (lead-- > 0) body.unshift(0);
+    return body;
+  }
+
+  // 3 byte, signerat, big-endian  (samma packning som m4t7bq.py)
+  function toBytes3(centi) {
+    var v = centi < 0 ? centi + 0x1000000 : centi;
+    return [(v >> 16) & 255, (v >> 8) & 255, v & 255];
+  }
+  function fromBytes3(bytes) {
+    while (bytes.length < 3) bytes.unshift(0);
+    var v = (bytes[0] << 16) | (bytes[1] << 8) | bytes[2];
+    return v >= 0x800000 ? v - 0x1000000 : v;
+  }
+
+  var ICE = 40, STEAM = 240;
+  function mmToC(mm) { return (mm - ICE) / (STEAM - ICE) * 100; }
+  function cToMm(c) { return ICE + c / 100 * (STEAM - ICE); }
+
+  function tokenFor(c) { return encode(toBytes3(Math.round(c * 100))); }
+
+  // ---- skalstreck ------------------------------------------------------
+  var TOP_Y = 30, BOT_Y = 440, MM_MAX = 280;
+  function mmToY(mm) { return BOT_Y - (mm / MM_MAX) * (BOT_Y - TOP_Y); }
+  function yToMm(y) { return (BOT_Y - y) / (BOT_Y - TOP_Y) * MM_MAX; }
+
+  var ticks = document.getElementById("ticks");
+  var frag = "";
+  for (var c = -20; c <= 120; c += 10) {
+    var y = mmToY(cToMm(c)).toFixed(1);
+    var major = c % 20 === 0;
+    frag += '<line x1="' + (major ? 84 : 84) + '" y1="' + y + '" x2="' +
+            (major ? 100 : 93) + '" y2="' + y +
+            '" stroke="var(--edge)" stroke-width="1"/>';
+    if (major) {
+      frag += '<text class="tick-label" x="105" y="' + (Number(y) + 3.2).toFixed(1) + '">' + c + '</text>';
+    }
+  }
+  frag += '<text class="tick-label" x="105" y="18">&deg;C</text>';
+  ticks.innerHTML = frag;
+
+  // ---- element ---------------------------------------------------------
+  var svg     = document.querySelector("svg.thermo");
+  var merc    = document.getElementById("mercury");
+  var slider  = document.getElementById("slider");
+  var vMm     = document.getElementById("v-mm");
+  var vC      = document.getElementById("v-c");
+  var vToken  = document.getElementById("v-token");
+  var vUrl    = document.getElementById("v-url");
+  var vBack   = document.getElementById("v-back");
+  var vBytes  = document.getElementById("v-bytes");
+
+  function hex(b) { return b.map(function (x) { return x.toString(16).padStart(2, "0"); }).join(" "); }
+
+  function render(mm) {
+    mm = Math.max(0, Math.min(MM_MAX, mm));
+    var c = mmToC(mm);
+    var centi = Math.round(c * 100);
+    var bytes = toBytes3(centi);
+    var token = encode(bytes);
+    var back = fromBytes3(decode(token)) / 100;
+
+    var y = mmToY(mm);
+    merc.setAttribute("y", y.toFixed(1));
+    merc.setAttribute("height", Math.max(0, 470 - y).toFixed(1));
+
+    vMm.textContent    = mm.toFixed(1);
+    vC.textContent     = c.toFixed(2);
+    vToken.textContent = token;
+    vUrl.textContent   = "/matning/" + token;
+    vBack.textContent  = back.toFixed(2) + " °C";
+    vBytes.textContent = hex(bytes);
+
+    svg.setAttribute("aria-valuenow", mm.toFixed(1));
+    svg.setAttribute("aria-valuetext", mm.toFixed(1) + " mm, " + c.toFixed(2) + " grader C, " + token);
+    if (slider.value !== String(mm)) slider.value = mm;
+  }
+
+  // ---- interaktion -----------------------------------------------------
+  slider.addEventListener("input", function () { render(parseFloat(slider.value)); });
+
+  var dragging = false;
+  function fromPointer(ev) {
+    var box = svg.getBoundingClientRect();
+    var yInSvg = (ev.clientY - box.top) / box.height * 530;
+    render(yToMm(yInSvg));
+  }
+  svg.addEventListener("pointerdown", function (ev) {
+    dragging = true;
+    svg.setPointerCapture(ev.pointerId);
+    fromPointer(ev);
+  });
+  svg.addEventListener("pointermove", function (ev) { if (dragging) fromPointer(ev); });
+  svg.addEventListener("pointerup", function () { dragging = false; });
+  svg.addEventListener("pointercancel", function () { dragging = false; });
+  svg.addEventListener("keydown", function (ev) {
+    var step = ev.shiftKey ? 10 : 1;
+    var cur = parseFloat(slider.value);
+    if (ev.key === "ArrowUp" || ev.key === "ArrowRight") { render(cur + step); ev.preventDefault(); }
+    if (ev.key === "ArrowDown" || ev.key === "ArrowLeft") { render(cur - step); ev.preventDefault(); }
+  });
+
+  // ---- provtabell ------------------------------------------------------
+  var rows = [
+    { mm: 40,    fixed: true,  label: "Ispunkt" },
+    { mm: 10,    fixed: false, label: "Frost" },
+    { mm: 118.4, fixed: false, label: "Demons avlasning" },
+    { mm: 240,   fixed: true,  label: "Kokpunkt" }
+  ];
+  var tbody = document.getElementById("samples");
+  tbody.innerHTML = rows.map(function (r) {
+    var c = mmToC(r.mm);
+    var t = tokenFor(c);
+    return '<tr class="' + (r.fixed ? "fixed" : "") + '">' +
+           "<td>" + r.label + "</td>" +
+           "<td>" + r.mm.toFixed(1) + " mm</td>" +
+           "<td>" + c.toFixed(2) + " °C</td>" +
+           '<td class="mono">' + t + "</td>" +
+           "<td>" + t.length + "</td></tr>";
+  }).join("");
+
+  render(118.4);
+})();
+</script>

@@ -1,0 +1,13 @@
+# aldrig nycklar i repot
+*.key
+*.asc
+secring.*
+*.gpg
+
+# lokala checkpoints kan innehalla vardagsdata
+AGENTS/*/chain/*.local.json
+
+.DS_Store
+.wander/
+.DS_Store
+.aider*

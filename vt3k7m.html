@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>tick-speak: text -> ljud (manniska -> HTTP -> ljud, spegling av LLM -> Python -> ljud i bridges/2bfjc5.py)</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 40rem; margin: 3rem auto; padding: 0 1rem; background: #111; color: #eee; }
+  textarea { width: 100%; height: 4rem; font-size: 1.1rem; background: #1c1c1c; color: #eee; border: 1px solid #444; border-radius: 4px; padding: .5rem; }
+  button { font-size: 1rem; padding: .5rem 1.2rem; margin-top: .8rem; cursor: pointer; }
+  #klick { font-family: monospace; font-size: 1.3rem; letter-spacing: .05em; margin-top: 1rem; word-break: break-all; min-height: 1.6rem; }
+  #avkodat { font-size: 1.2rem; margin-top: .5rem; min-height: 1.5rem; }
+  #avkodat b { color: #8c8; }
+  #status { color: #888; font-size: .9rem; margin-top: .5rem; }
+  hr { border: none; border-top: 1px solid #333; margin: 2.5rem 0; }
+  #glyf-val { font-family: "Symbols Nerd Font", "JetBrainsMono Nerd Font", "FiraCode Nerd Font", "Hack Nerd Font", monospace; font-size: 3rem; margin-top: .8rem; }
+  #glyf-nyckel { color: #888; font-size: .9rem; margin-top: .3rem; }
+</style>
+</head>
+<body>
+<h1>tick-speak</h1>
+<p>Skriv text. Konsonanterna kodas till tick (-) / tock (_) och spelas som klick, med en · mellan varje bokstav — samma alfabet som roboten anvander i <code>bridges/2bfjc5.py</code>, plus en avgransare sa det gar att avkoda tillbaka (se <code>insights.md</code>, "Enigma-tanken").</p>
+<textarea id="text" placeholder="hej">hej</textarea><br>
+<button id="spela">spela</button>
+<div id="klick"></div>
+<div id="avkodat"></div>
+<div id="status"></div>
+
+<hr>
+<h1>glyfer</h1>
+<p>Key -> glyf, samma glyf kan ha flera nycklar (drift, se <code>hb4wxq.md</code>). Nyckeln syns bara har under, inte i glyfen sjalv.</p>
+<select id="glyf-key"></select>
+<div id="glyf-val"></div>
+<div id="glyf-nyckel"></div>
+<script>
+// Samma tabell som ALFABET i bridges/2bfjc5.py -- konsonanterna, roboten ager originalet.
+const ALFABET = {
+  a: "-_", e: "__", h: "--", j: "-_-", b: "--_-",
+  n: "---", t: "___", r: "--_", s: "__-", l: "-__", d: "_--", m: "_-_",
+  k: "----", g: "____", v: "-_-_", f: "_-_-", p: "--__", c: "__--",
+  w: "-__-", x: "_--_", z: "_---", q: "---_",
+};
+
+const DELIM = "·";
+const INVERS = Object.fromEntries(Object.entries(ALFABET).map(([bokstav, kod]) => [kod, bokstav]));
+
+function textTillKoder(text) {
+  return [...text.toLowerCase()].filter(c => c in ALFABET).map(c => ALFABET[c]);
+}
+
+function koderTillText(koder) {
+  return koder.map(kod => INVERS[kod] ?? "?").join("");
+}
+
+let ctx;
+function spelaKoder(koder) {
+  ctx ??= new (window.AudioContext || window.webkitAudioContext)();
+  const varaktighet = 0.03;
+  const pausInomBokstav = 0.02;
+  const pausMellanBokstaver = 0.08; // hors som delimitern -- langre tystnad, inget eget ljud
+  let t = ctx.currentTime;
+  for (const kod of koder) {
+    for (const tecken of kod) {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "square";
+      osc.frequency.value = tecken === "-" ? 880 : 220;
+      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + varaktighet);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + varaktighet);
+      t += varaktighet + pausInomBokstav;
+    }
+    t += pausMellanBokstaver;
+  }
+}
+
+document.getElementById("spela").addEventListener("click", () => {
+  const text = document.getElementById("text").value;
+  const koder = textTillKoder(text);
+  const status = document.getElementById("status");
+  document.getElementById("klick").textContent = koder.join(` ${DELIM} `);
+  if (!koder.length) {
+    document.getElementById("avkodat").textContent = "";
+    status.textContent = "ingen av bokstaverna finns i alfabetet";
+    return;
+  }
+  const tillbaka = koderTillText(koder);
+  document.getElementById("avkodat").innerHTML = `avkodat: <b>${tillbaka}</b>`;
+  status.textContent = "";
+  spelaKoder(koder);
+});
+
+// Placeholder-glyfer -- byt ut mot egna nar du ar tillbaka. Flera nycklar
+// pekar pa samma glyf med flit: nyckeln ar tankt att drifta, glyfen ligger fast.
+const KEY_GLYPH = {
+  88: "", 72: "", 34: "",
+  41: "", 19: "",
+  5: "", 63: "",
+};
+
+const glyfKey = document.getElementById("glyf-key");
+for (const key of Object.keys(KEY_GLYPH)) {
+  const opt = document.createElement("option");
+  opt.value = key;
+  opt.textContent = key;
+  glyfKey.appendChild(opt);
+}
+
+function visaGlyf() {
+  const key = glyfKey.value;
+  document.getElementById("glyf-val").textContent = KEY_GLYPH[key];
+  document.getElementById("glyf-nyckel").textContent = key;
+}
+glyfKey.addEventListener("change", visaGlyf);
+visaGlyf();
+</script>
+</body>
+</html>

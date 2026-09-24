@@ -1,0 +1,34 @@
+---
+title: "OTP ur invarianten"
+description: "En engangskod som kommer ur att ha traffats, inte ur att ha bytt nyckel."
+---
+
+Vanlig TOTP hashar en delad hemlighet mot objektiv tid:
+
+```text
+kod = HMAC(hemlighet, floor(unix / 30))
+```
+
+Har laggs den subjektiva koordinaten till:
+
+```text
+kod = HMAC(hemlighet || |delta|, floor(unix / steg))
+```
+
+Beloppet, inte det tecknade vardet. `zero_A - zero_B` och `zero_B - zero_A`
+ar samma skillnad at var sitt hall.
+
+## Vad det bevisar
+
+En vanlig TOTP-hemlighet bevisar att ni **delat en fil**. `delta` bevisar att
+ni bada var nagonstans, nagon gang, och vet var den andra vaknade.
+
+<Warning>
+  `delta` ar **ingen stark hemlighet**. Som mest cirka 17 bitar, och
+  soluppgangstider ar offentliga. Den anvands som *kontext* ovanpa en riktig
+  hemlighet, aldrig i stallet for en.
+</Warning>
+
+```sh
+./sjalvklocka.py otp 33.31 44.36  39.90 116.40 --hemlighet ~/.hemlig --stjarna
+```

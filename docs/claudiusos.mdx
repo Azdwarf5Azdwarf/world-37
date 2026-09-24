@@ -1,0 +1,25 @@
+---
+title: "claudiusOS"
+description: "Underlaget: BEAM pa riktig hardvara, och ett Lisp-sidospar."
+---
+
+Huvudsparet ar **BEAM pa riktig hardvara** via Nerves. Lisp-materialet ar
+studieobjekt, med Mezzano som aktivt sidospar.
+
+| Mapp | Vad |
+|---|---|
+| `claudiusOS/k3p7wq/` | Nerves-projektet. Bootar i QEMU till `iex` pa cirka 32 s. |
+| `claudiusOS/lisp/` | Mini Lisp-OS: metacirkular evaluator, processtabell, schemalaggare. |
+| `claudiusOS/AIVP/` | [AIVP](/aivp/oversikt). |
+| `claudiusOS/subjective-clock/` | [subjective-clock](/subjective-clock/oversikt). |
+| `claudiusOS/features/` | Ra idelista, en fil per ide. Inget beslutat. |
+| `claudiusOS/learning/` | Fragor och utredningar. |
+
+## Tester
+
+```sh
+cd claudiusOS && sh lisp/x4nb9t.sh
+```
+
+Tre lager i samma ordning som Mezzano validerar: bygget laddar rent, imagen
+bootar, testerna kors inne i systemet.

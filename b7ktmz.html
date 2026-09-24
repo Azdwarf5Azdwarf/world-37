@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<title>mini-test: tick-speak-binart vs standard binart, fraga/svar</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 44rem; margin: 3rem auto; padding: 0 1rem; background: #111; color: #eee; }
+  h1 { font-size: 1.4rem; }
+  p { color: #ccc; line-height: 1.5; }
+  code { background: #1c1c1c; padding: .1rem .3rem; border-radius: 3px; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-family: monospace; }
+  th, td { border: 1px solid #333; padding: .4rem .6rem; text-align: left; font-size: .95rem; }
+  th { background: #1c1c1c; color: #9cf; }
+  .tick { color: #8c8; }
+  .std { color: #fc8; }
+  .rad { font-size: 1.05rem; margin-top: 1.5rem; }
+  .bits { font-family: monospace; word-break: break-all; font-size: 1.05rem; margin: .3rem 0; }
+  hr { border: none; border-top: 1px solid #333; margin: 2rem 0; }
+  .langd { color: #888; font-size: .85rem; }
+  input { font-size: 1rem; padding: .3rem .5rem; background: #1c1c1c; color: #eee; border: 1px solid #444; border-radius: 4px; }
+  button { font-size: 1rem; padding: .4rem 1rem; margin-left: .5rem; cursor: pointer; }
+  .fil { border: 1px solid #333; border-radius: 6px; padding: .8rem 1rem; margin: .8rem 0; }
+  .fil.traff { border-color: #8c8; }
+  .prime { font-family: monospace; color: #9cf; }
+  .forfattare { color: #888; font-size: .85rem; }
+  label.belief { display: block; margin: .4rem 0; cursor: pointer; }
+  .produkt { font-size: 1.4rem; }
+  .faktor { display: inline-block; border: 1px solid #8c8; border-radius: 4px; padding: .2rem .6rem; margin: .2rem; }
+</style>
+</head>
+<body>
+<h1>tick-speak-binart vs standard binart</h1>
+<p>
+  Hardkodat exempel, spike enligt <code>insights.md</code> ("Oppen ide: mini-test i HTML").
+  Fraga och svar kodas pa tva satt: <span class="tick">tick-speak</span> (samma alfabet som
+  <code>bridges/2bfjc5.py</code>, - = 1, _ = 0) och <span class="std">standard binart</span>
+  (vanlig 8-bitars ASCII per bokstav). Poangen: samma ord, samma mening -- men helt olika
+  bitmonster beroende pa vilken kodning som anvands. Det ar samma iakttagelse som
+  primtal-arkitekturen (se <code>insights.md</code>): meningen ar delad, kodningen ar det inte.
+</p>
+
+<div class="rad">Fraga: <b id="fraga-ord"></b></div>
+<table id="fraga-tabell"></table>
+<div class="bits">tick-speak (ihopslaget): <span class="tick" id="fraga-tick-full"></span> <span class="langd" id="fraga-tick-langd"></span></div>
+<div class="bits">standard (ihopslaget): <span class="std" id="fraga-std-full"></span> <span class="langd" id="fraga-std-langd"></span></div>
+
+<hr>
+
+<div class="rad">Svar: <b id="svar-ord"></b></div>
+<table id="svar-tabell"></table>
+<div class="bits">tick-speak (ihopslaget): <span class="tick" id="svar-tick-full"></span> <span class="langd" id="svar-tick-langd"></span></div>
+<div class="bits">standard (ihopslaget): <span class="std" id="svar-std-full"></span> <span class="langd" id="svar-std-langd"></span></div>
+
+<hr>
+<p id="slutsats"></p>
+
+<hr>
+<h1>primtal som kontext-tagg</h1>
+<p>
+  Annan sak an bitkodningen ovan -- primtalet kodar inte ordet eller meningen, det taggar
+  <b>objektet</b> meningen handlar om. Tre pahittade filer/kallor (manniska X, manniska Y, AI)
+  beskriver var sin handelse dar samma objekt forekommer, och var och en satter sitt eget
+  primtal pa objektet -- utan att komma overens om vilket tal forst.
+</p>
+
+<div id="filer"></div>
+
+<p>Sok pa objektet (t.ex. <code>tradet</code>) -- alla filer som tagit samma objekt hittas,
+trots olika primtal och olika meningar:</p>
+<input id="sok" value="tradet">
+<button id="sok-knapp">sok</button>
+<div id="traffar" style="margin-top:1rem;"></div>
+
+<hr>
+<h1>primtalskedja (Godel-numrering)</h1>
+<p>
+  Multiplicera ihop taggarna for de "beliefs" som ar aktiva just nu till EN produkt.
+  Faktorisera produkten for att fa tillbaka exakt vilka som ingar -- ny belief =
+  multiplicera in en prime, glomd belief = dela bort den. Ingen extra bokforing behovs,
+  hela historiken ligger i sjalva talet.
+</p>
+
+<div id="kedja-filer"></div>
+<div class="rad produkt">Produkt: <span id="produkt" class="prime"></span></div>
+<button id="faktorisera-knapp">faktorisera</button>
+<div id="faktorer" style="margin-top:1rem;"></div>
+
+<script>
+// Samma tabell som ALFABET i bridges/2bfjc5.py / vt3k7m.html.
+const ALFABET = {
+  a: "-_", e: "__", h: "--", j: "-_-", b: "--_-",
+  n: "---", t: "___", r: "--_", s: "__-", l: "-__", d: "_--", m: "_-_",
+  k: "----", g: "____", v: "-_-_", f: "_-_-", p: "--__", c: "__--",
+  w: "-__-", x: "_--_", z: "_---", q: "---_",
+};
+
+const FRAGA = "hej";
+const SVAR = "da";
+
+function tickBits(klick) {
+  return klick.replace(/-/g, "1").replace(/_/g, "0");
+}
+
+function stdBits(bokstav) {
+  return bokstav.charCodeAt(0).toString(2).padStart(8, "0");
+}
+
+function byggRad(ord, prefix) {
+  const tabell = document.getElementById(`${prefix}-tabell`);
+  document.getElementById(`${prefix}-ord`).textContent = ord;
+
+  let rader = "<tr><th>bokstav</th><th>tick-speak (klick)</th><th>tick-speak bitar</th><th>standard binart</th></tr>";
+  let tickFull = "";
+  let stdFull = "";
+  for (const bokstav of ord.toLowerCase()) {
+    const klick = ALFABET[bokstav] ?? "?";
+    const tbits = klick === "?" ? "?" : tickBits(klick);
+    const sbits = stdBits(bokstav);
+    rader += `<tr><td>${bokstav}</td><td class="tick">${klick}</td><td class="tick">${tbits}</td><td class="std">${sbits}</td></tr>`;
+    if (tbits !== "?") tickFull += tbits;
+    stdFull += sbits;
+  }
+  tabell.innerHTML = rader;
+  document.getElementById(`${prefix}-tick-full`).textContent = tickFull;
+  document.getElementById(`${prefix}-tick-langd`).textContent = `(${tickFull.length} bitar)`;
+  document.getElementById(`${prefix}-std-full`).textContent = stdFull;
+  document.getElementById(`${prefix}-std-langd`).textContent = `(${stdFull.length} bitar)`;
+}
+
+byggRad(FRAGA, "fraga");
+byggRad(SVAR, "svar");
+
+document.getElementById("slutsats").innerHTML =
+  `Sammma bokstaver, samma ord, samma mening -- men <span class="tick">tick-speak</span> och ` +
+  `<span class="std">standard binart</span> ger olika langd och olika bitmonster for varje bokstav. ` +
+  `En AI eller manniska som svarar "${SVAR}" pa "${FRAGA}" later likadant i klartext, men de tva ` +
+  `bitstrommarna gar inte att forvaxla -- det ar detta lager (vilken kodning, inte vilket innehall) ` +
+  `som primtal-taggningen i insights.md later koppla ihop over filer.`;
+
+// --- Del 2: primtal som kontext-tagg pa ett OBJEKT, inte pa ett ord ---
+
+function arPrimtal(n) {
+  if (n < 2) return false;
+  for (let i = 2; i * i <= n; i++) if (n % i === 0) return false;
+  return true;
+}
+
+const FILER = [
+  { forfattare: "Manniska X", mening: "Tradet vid huset bojde sig i stormen igar.", objekt: "tradet", prime: 41 },
+  { forfattare: "Manniska Y", mening: "Kollade tradet pa skolgarden, det har vuxit sen sist.", objekt: "tradet", prime: 67 },
+  { forfattare: "AI", mening: "Tradet i bakgarden fotograferades klockan 14.", objekt: "tradet", prime: 89 },
+];
+
+function rendera(traffId) {
+  const filerDiv = document.getElementById("filer");
+  filerDiv.innerHTML = FILER.map((f, i) => `
+    <div class="fil${traffId && traffId.includes(i) ? " traff" : ""}">
+      <div class="forfattare">${f.forfattare}</div>
+      <div>${f.mening}</div>
+      <div>objekt: <b>${f.objekt}</b> &nbsp; prime: <span class="prime">${f.prime}</span>
+        ${arPrimtal(f.prime) ? "(ar primtal)" : "(OBS: INTE primtal!)"}</div>
+    </div>
+  `).join("");
+}
+
+document.getElementById("sok-knapp").addEventListener("click", () => {
+  const fraga = document.getElementById("sok").value.trim().toLowerCase();
+  const traffIndex = FILER
+    .map((f, i) => (f.objekt.toLowerCase() === fraga ? i : -1))
+    .filter(i => i >= 0);
+  rendera(traffIndex);
+  const primtal = traffIndex.map(i => FILER[i].prime);
+  document.getElementById("traffar").textContent = traffIndex.length
+    ? `${traffIndex.length} traffar, olika primtal (${primtal.join(", ")}), samma objekt -- ` +
+      `de tre kallorna vet att det ar samma "${fraga}" utan att lasa varandras hela mening forst.`
+    : "inga traffar";
+});
+
+rendera([]);
+
+// --- Del 3: primtalskedja -- multiplicera in/dela bort beliefs, faktorisera tillbaka ---
+
+function faktorisera(n) {
+  const faktorer = [];
+  let x = n;
+  for (let p = 2; p * p <= x; p++) {
+    while (x % p === 0) { faktorer.push(p); x /= p; }
+  }
+  if (x > 1) faktorer.push(x);
+  return faktorer;
+}
+
+const kedjaAktiva = new Set([0, 1]); // "hej + da" -- forsta tva beliefs aktiva som standard
+
+function kedjaProdukt() {
+  return [...kedjaAktiva].reduce((p, i) => p * FILER[i].prime, 1);
+}
+
+function renderaKedja() {
+  const div = document.getElementById("kedja-filer");
+  div.innerHTML = FILER.map((f, i) => `
+    <label class="belief">
+      <input type="checkbox" data-i="${i}" ${kedjaAktiva.has(i) ? "checked" : ""}>
+      prime <span class="prime">${f.prime}</span> -- ${f.forfattare}: "${f.mening}"
+    </label>
+  `).join("");
+  div.querySelectorAll("input[type=checkbox]").forEach(cb => {
+    cb.addEventListener("change", () => {
+      const i = Number(cb.dataset.i);
+      cb.checked ? kedjaAktiva.add(i) : kedjaAktiva.delete(i);
+      document.getElementById("faktorer").textContent = "";
+      visaProdukt();
+    });
+  });
+}
+
+function visaProdukt() {
+  document.getElementById("produkt").textContent = kedjaAktiva.size ? kedjaProdukt() : "(inga beliefs aktiva)";
+}
+
+document.getElementById("faktorisera-knapp").addEventListener("click", () => {
+  const produkt = kedjaAktiva.size ? kedjaProdukt() : 1;
+  const faktorer = faktorisera(produkt);
+  const faktorerDiv = document.getElementById("faktorer");
+  if (!faktorer.length) {
+    faktorerDiv.textContent = "inga faktorer (produkten ar 1 -- inga beliefs aktiva)";
+    return;
+  }
+  const primeTillFil = Object.fromEntries(FILER.map(f => [f.prime, f]));
+  faktorerDiv.innerHTML =
+    `${produkt} = ${faktorer.join(" × ")}<br><br>` +
+    faktorer.map(p => {
+      const f = primeTillFil[p];
+      return `<span class="faktor">${p}${f ? ` -- ${f.forfattare}` : " -- okand"}</span>`;
+    }).join(" ");
+});
+
+renderaKedja();
+visaProdukt();
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+---
+title: "tick-speak och roboten"
+description: "Ett alfabet i tva ljud. Roboten talar aldrig, den klickar."
+---
+
+`-` ar tick (ljust, 1900 Hz). `_` ar tock (morkt, 780 Hz). Vanligast ar kortast.
+
+| | | | |
+|---|---|---|---|
+| a `-_` | e `__` | h `--` | j `-_-` |
+| n `---` | t `___` | r `--_` | s `__-` |
+| l `-__` | d `_--` | m `_-_` | |
+
+n och t ar varandras motsatser, likasa r/s och l/d. Tappar du ett klick i
+trafikbrus blir det anda inte fel bokstav. Hela tabellen bor i `robot/w4k7px.py`
+och ar den enda kallan.
+
+<Note>Alfabetet ar handskrivet och ags av sin skapare. Koden ror det aldrig.</Note>
+
+## Roboten
+
+En liten robot som gar bredvid dig pa gatan. Den talar aldrig, den klickar.
+Folk skrattar och fragar vad som hander, och det ar vagen in.
+
+| Steg | Status |
+|---|---|
+| Hardvara | kort valt |
+| Ljudvokabular, tick och tock | klart, `robot/w4k7px.py` |
+| Seendet, bild till reaktion | klart, `robot/v8n4rq.py` |
+| BLE-narhet | harnast |
+
+## Spraket
+
+I `wisp/sprak/` byggs ett teckensprak ovanpa ljudet. Karnan:
+
+```text
+Ka-To  (How are you)
+To-Ka  (you are How)
+```

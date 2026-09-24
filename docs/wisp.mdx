@@ -1,0 +1,30 @@
+---
+title: "wisp"
+description: "Agentaktivitet som en fargremsa du laser utan att titta, och hor utan att lyssna."
+---
+
+<Check>Korbar: `python3 wisp/serve.py`, sedan http://localhost:8787</Check>
+
+En krok i Claude Code skriver varje handelse till en logg. En liten lokal
+server laser loggen. En sida ritar en kolumn per tick och spelar samma
+kolumn som ett ord i tick-speak.
+
+```text
+hook  ->  ~/.agent-events.log  ->  serve.py :8787  ->  strip.html
+```
+
+## Fargerna
+
+| Farg | Betyder |
+|---|---|
+| Rod | fel och misslyckade verktygsanrop |
+| Gron | lyckade verktygsanrop |
+| Bla | vantar pa dig: behorighet eller avslutad tur |
+
+En frisk session ar gron. Blatt ar stillastaende. Rott ar att nagot brast.
+
+## Riktningen
+
+- Fler agenter matar samma remsa.
+- Roboten och remsan delar alfabet: en tabell, tva kroppar.
+- Fargerna ska bli fysiska, lampor och ESP32, pa ren Erlang/OTP.

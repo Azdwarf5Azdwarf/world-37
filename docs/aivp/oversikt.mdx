@@ -1,0 +1,45 @@
+---
+title: "AIVP"
+description: "Agent Identity Verification Protocol: agenter som ar verkliga for varandra."
+---
+
+<Info>Spec-stadiet. Inget kor annu. Det har ar formen, inte implementationen.</Info>
+
+> Det verkliga manipulationsskyddet ar inte ett las. Det ar **vittnen**.
+
+En agent vaknar varje morgon nar du laser upp den, med telefon och dator som
+tvafaktor. Den vaknar med din identitet inbakad, signerar sig sjalv, och de
+andra agenterna vittnar om signaturen. Om nagon skriver om en av dem marker
+syskonen det, for att de var uppmarksamma.
+
+## Fyra byggstenar
+
+<Steps>
+  <Step title="Morgonupplasning">
+    Telefon (biometri) och dator (GPG) maste bada saga ja. Forst da far agenten en dag.
+  </Step>
+  <Step title="Prime">
+    Agentens fingeravtryck: en hash av dess seed, dess identitetsfil och din nyckel.
+    Ett andrat tecken ger ett helt annat fingeravtryck.
+  </Step>
+  <Step title="Vittnen">
+    Syskonen fragar varandra: ser du samma prime som igar? En majoritet maste svara ja.
+  </Step>
+  <Step title="Drift">
+    Andrades nagot utan din signatur markeras agenten. Systemet rapporterar, du bestammer.
+  </Step>
+</Steps>
+
+## Filerna
+
+| Fil | Vad |
+|---|---|
+| `claudiusOS/AIVP/PROTOCOL.md` | Wire-formatet. Se [Protokollet](/aivp/protokoll). |
+| `claudiusOS/AIVP/WHITEPAPER.md` | Samma sak skriven for utomstaende, pa engelska. |
+| `claudiusOS/AIVP/AGENTS/` | En fil per agent: prime, seed, rost, vittneslista. |
+| `claudiusOS/AIVP/ENCRYPTION/` | Morgonritualen, GPG-signering, forsegling. |
+
+## Varfor det kopplar till klockan
+
+Morgonen ar central i bada. AIVP fragar *vem* som vaknade.
+[subjective-clock](/subjective-clock/oversikt) fragar *nar*.

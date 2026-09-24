@@ -1,0 +1,55 @@
+---
+title: "subjective-clock"
+description: "Solen gick upp. Det ar den enda klockan alla redan har."
+---
+
+<Check>Korande prototyp: `claudiusOS/subjective-clock/sjalvklocka.py`, inga beroenden.</Check>
+
+Tva personer traffas. De foljer olika kalendrar, men bada vaknade nar solen
+gick upp dar de var. Skillnaden mellan de tva ogonblicken ar **densamma
+oavsett vem av dem som reste**.
+
+## Tva koordinater
+
+| | Objektiv | Subjektiv |
+|---|---|---|
+| Vad | unix-tid, sekunder sedan 1970 | sekunder sedan solen gick upp dar du vaknade |
+| Vem delar den | alla | bara du |
+| Nollpunkt | bestamd av en kommitte | soluppgangen, ingen bestamde den |
+
+```text
+subjektiv_tid(t) = t - soluppgang_zero
+```
+
+`soluppgang_zero` flyttar sig inte nar du satter dig pa ett flyg. Den flyttar sig nar du sover.
+
+## Invarianten
+
+```text
+delta = zero_A - zero_B
+```
+
+Det spelar ingen roll vem som reser. Deltat ar en egenskap hos paret, inte
+hos nagon av dem. Tva parter kan rakna fram det var for sig och fa samma
+svar utan att skicka nagot.
+
+## Prova
+
+```sh
+cd claudiusOS/subjective-clock
+./sjalvklocka.py nu      33.31 44.36                 # Bagdad
+./sjalvklocka.py delta   33.31 44.36  39.90 116.40   # Bagdad <-> Peking
+./sjalvklocka.py ankare  33.31 44.36                 # var i dygnet, av 20
+./sjalvklocka.py stjarna 33.31 44.36                 # vem stod over dig
+```
+
+## Vad det inte ar
+
+- Inte en tidszon. Tidszoner ar politiska och delas av miljoner.
+- Inte soltid. Det har ar en *handelse*, inte en vinkel.
+- Inte en ny kalender. Kalendrarna far vara kvar, det har ligger under dem.
+
+<CardGroup cols={2}>
+  <Card title="OTP" icon="key" href="/subjective-clock/otp">Engangskod ur invarianten.</Card>
+  <Card title="Stjarnzero" icon="star" href="/subjective-clock/stjarnzero">Den tredje koordinaten.</Card>
+</CardGroup>

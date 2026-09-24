@@ -1,0 +1,227 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="dark">
+<title>Roboten</title>
+<style>
+  /* Byggd for att lasas i solsken, med en hand, medan nagot hander.
+     Inga externa filer — den ska funka pa en hotspot utan internet. */
+  :root {
+    --bg:      #0b0d10;
+    --panel:   #14181d;
+    --kant:    #262c34;
+    --text:    #f2f5f8;
+    --svag:    #8b96a3;
+    --tick:    #ffd24a;
+    --tock:    #3d4855;
+    --ok:      #4ade80;
+    --vantar:  #fbbf24;
+    --fel:     #f87171;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+    -webkit-text-size-adjust: 100%;
+  }
+  .h { max-width: 640px; margin: 0 auto; padding: 16px; }
+
+  header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  header h1 { font-size: 18px; margin: 0; letter-spacing: -.01em; }
+  .puls {
+    width: 10px; height: 10px; border-radius: 50%; background: var(--svag);
+    flex: none; transition: background .2s;
+  }
+  .puls.lever { background: var(--ok); animation: andas 2s ease-in-out infinite; }
+  .puls.fel   { background: var(--fel); animation: none; }
+  @keyframes andas { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+  .status { margin-left: auto; font-size: 13px; color: var(--svag);
+            font-variant-numeric: tabular-nums; }
+
+  .kort {
+    background: var(--panel); border: 1px solid var(--kant);
+    border-radius: 14px; padding: 18px; margin-bottom: 12px;
+  }
+  .etikett {
+    font-size: 11px; text-transform: uppercase; letter-spacing: .1em;
+    color: var(--svag); margin-bottom: 8px;
+  }
+
+  /* det stora — syns pa armlangds avstand i solen */
+  .reaktion { font-size: 15px; color: var(--svag); margin-bottom: 4px; }
+  .ord {
+    font-size: clamp(34px, 12vw, 56px); font-weight: 650;
+    letter-spacing: -.02em; line-height: 1.05; margin: 0 0 4px;
+    overflow-wrap: anywhere;
+  }
+  .varfor { font-size: 14px; color: var(--svag); font-style: italic; }
+
+  /* tick och tock som staplar: hog och ljus = tick, lag och matt = tock */
+  .monster {
+    display: flex; align-items: flex-end; gap: 5px; height: 46px;
+    margin-top: 16px; overflow-x: auto; padding-bottom: 2px;
+  }
+  .monster .lucka { width: 14px; flex: none; }
+  .monster i {
+    display: block; width: 7px; border-radius: 3px; flex: none;
+    background: var(--tock); height: 14px;
+  }
+  .monster i.t { background: var(--tick); height: 40px; }
+  .raatext {
+    margin-top: 10px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 15px; color: var(--svag); overflow-wrap: anywhere;
+  }
+
+  .felrad {
+    background: #2a1416; border-color: #5b2326; color: #ffc9c9;
+    font-size: 14px;
+  }
+
+  details { border-top: 1px solid var(--kant); padding-top: 14px; margin-top: 4px; }
+  summary { cursor: pointer; font-size: 14px; color: var(--svag); padding: 6px 0; }
+  summary::marker { color: var(--kant); }
+
+  ol.plan { margin: 10px 0 0; padding-left: 22px; font-size: 14px; }
+  ol.plan li { margin-bottom: 7px; }
+  ol.plan li.klar { color: var(--svag); text-decoration: line-through; }
+  ol.plan li.nu::after {
+    content: " ← har"; color: var(--tick); text-decoration: none;
+    font-weight: 600; letter-spacing: .02em;
+  }
+
+  table.abc {
+    width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px;
+  }
+  table.abc td { padding: 5px 6px; border-bottom: 1px solid var(--kant); }
+  table.abc td.b { width: 1.6em; font-weight: 650; }
+  table.abc td.m {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--tick); letter-spacing: .12em;
+  }
+  .not { font-size: 13px; color: var(--svag); margin-top: 12px; }
+</style>
+</head>
+<body>
+<div class="h">
+
+  <header>
+    <span class="puls" id="puls"></span>
+    <h1>Roboten</h1>
+    <span class="status" id="status">ansluter…</span>
+  </header>
+
+  <div class="kort">
+    <div class="etikett">sager just nu</div>
+    <div class="reaktion" id="reaktion">—</div>
+    <p class="ord" id="ord">…</p>
+    <div class="varfor" id="varfor"></div>
+    <div class="monster" id="monster"></div>
+    <div class="raatext" id="raatext"></div>
+  </div>
+
+  <div class="kort felrad" id="fel" hidden></div>
+
+  <div class="kort">
+    <details>
+      <summary>Planen</summary>
+      <ol class="plan">
+        <li class="klar">Hardvara — kort, kamera, hogtalare, powerbank</li>
+        <li class="klar">Ljudvokabular — 22 tecken i tick och tock</li>
+        <li class="klar">Seendet — bild → claude-cli → en reaktion</li>
+        <li class="nu">BLE-narhet — telefonen sander, roboten flyr nar du kommer nara</li>
+        <li>Regi — kiosken, familjen, jakten</li>
+        <li>Repetition — en gang hemma, en gang pa gatan</li>
+      </ol>
+    </details>
+
+    <details>
+      <summary>Alfabetet</summary>
+      <table class="abc" id="abc"></table>
+      <p class="not">
+        Hog gul stapel = tick. Lag matt = tock.
+        Vokalerna sags aldrig pa gatan — de fylls i av den som lyssnar.
+      </p>
+    </details>
+  </div>
+
+</div>
+
+<script>
+const ALFABET = {
+  a:"-_", b:"--_-", c:"__--", d:"_--", e:"__", f:"_-_-", g:"____", h:"--",
+  j:"-_-", k:"----", l:"-__", m:"_-_", n:"---", p:"--__", q:"---_", r:"--_",
+  s:"__-", t:"___", v:"-_-_", w:"-__-", x:"_--_", z:"_---", "?":"_-"
+};
+
+// alfabettabellen, tva kolumner
+(function ritaAlfabet() {
+  const poster = Object.entries(ALFABET);
+  const rader = [];
+  for (let i = 0; i < poster.length; i += 2) rader.push(poster.slice(i, i + 2));
+  document.getElementById("abc").innerHTML = rader.map(rad =>
+    "<tr>" + rad.map(([b, m]) =>
+      `<td class="b">${b}</td><td class="m">${m}</td>`
+    ).join("") + (rad.length < 2 ? "<td></td><td></td>" : "") + "</tr>"
+  ).join("");
+})();
+
+function ritaMonster(text) {
+  const ruta = document.getElementById("monster");
+  ruta.innerHTML = "";
+  if (!text) return;
+  // "--, -_-  ___" -> bokstaver separerade av komma, ord av dubbla mellanslag
+  for (const tecken of text) {
+    if (tecken === "-" || tecken === "_") {
+      const stapel = document.createElement("i");
+      if (tecken === "-") stapel.className = "t";
+      ruta.appendChild(stapel);
+    } else if (tecken === "," || tecken === " ") {
+      const sista = ruta.lastElementChild;
+      if (sista && !sista.classList.contains("lucka")) {
+        const lucka = document.createElement("span");
+        lucka.className = "lucka";
+        ruta.appendChild(lucka);
+      }
+    }
+  }
+}
+
+let misslyckade = 0;
+
+async function tick() {
+  const puls = document.getElementById("puls");
+  const status = document.getElementById("status");
+  try {
+    const svar = await fetch("/tillstand", { cache: "no-store" });
+    if (!svar.ok) throw new Error(svar.status);
+    const d = await svar.json();
+    misslyckade = 0;
+
+    puls.className = "puls lever";
+    status.textContent = `${d.status} · varv ${d.varv} · ${d.tid || ""}`;
+
+    document.getElementById("reaktion").textContent = d.reaktion || "—";
+    document.getElementById("ord").textContent = d.ord || "…";
+    document.getElementById("varfor").textContent = d.varfor || "";
+    document.getElementById("raatext").textContent = d.monster || "";
+    ritaMonster(d.monster);
+
+    const fel = document.getElementById("fel");
+    fel.hidden = !d.fel;
+    if (d.fel) fel.textContent = d.fel;
+  } catch (e) {
+    if (++misslyckade > 2) {
+      puls.className = "puls fel";
+      status.textContent = "ingen kontakt med roboten";
+    }
+  }
+}
+
+tick();
+setInterval(tick, 1000);
+</script>
+</body>
+</html>

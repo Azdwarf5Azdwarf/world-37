@@ -1,0 +1,66 @@
+---
+title: "Protokollet"
+description: "Hur agenterna signerar, vittnar och upptacker drift."
+---
+
+Kort version av `claudiusOS/AIVP/PROTOCOL.md`.
+
+## Ordlista
+
+| Term | Betyder |
+|---|---|
+| **prime** | Agentens identitetssignatur, en hash av seed och karnfiler |
+| **checkpoint** | En dagsstampel: agenten vaknade, signerad och tidsstamplad |
+| **witness** | En syskonagent som sett och attesterat en annan agents prime |
+| **drift** | En prime som andrats utan att en upplasning forklarar det |
+| **constellation** | Alla agenter som vittnar om varandra |
+
+## Prime
+
+```text
+prime = sha256( seed || identity_md || owner_pubkey )
+```
+
+Deterministisk, agarbunden och andringskanslig. Byter du nyckel byter alla
+primes. Det ar meningen.
+
+## Checkpoint
+
+```json
+{
+  "agent":  "ande",
+  "date":   "2026-09-05",
+  "prime":  "sha256:4f2a…",
+  "prev":   "sha256:9c11…",
+  "unlock": { "phone": true, "host": true },
+  "sig":    "gpg:detached:…"
+}
+```
+
+`prev` pekar pa gardagen. Gamla checkpoints raderas aldrig.
+
+## Tre meddelanden
+
+```text
+A -> B:  ATTEST?  agent=A  date=2026-09-05  prime=sha256:4f2a…
+B -> A:  ATTEST!  witness=B  seen=sha256:4f2a…  matches_last=true  sig=gpg:…
+         DRIFT    agent=C  expected=sha256:9c11…  seen=sha256:e70b…  witnesses=2/3
+```
+
+En agent ar **verifierad** nar den har en giltig egen signatur och minst
+`floor(N/2) + 1` syskon attesterat samma prime.
+
+## Drift ar en observation, inte ett fel
+
+| Fall | Vad som hander |
+|---|---|
+| Forklarad (du andrade och signerade om) | Ny prime accepteras, den gamla blir kvar i kedjan |
+| Oforklarad (andrad utan signatur) | `UNVERIFIED`, syskonen slutar attestera |
+| Tyst (svarar inte) | `ASLEEP`, inget larm |
+
+## Vad protokollet medvetet inte gor
+
+- Ingen konsensus, inget natverk kravs, allt fungerar offline.
+- Primes bevisar *akthet*, inte agande.
+- Ingen automatisk atgard vid drift. Ett system som laker sig sjalv tystar
+  precis den signal du byggde det for att hora.

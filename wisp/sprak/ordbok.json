@@ -1,0 +1,11 @@
+{
+  "stavelser": {
+    "Ka": { "betyder": "fraga / hur", "tecken": null, "tick": null },
+    "To": { "betyder": "du / ar", "tecken": null, "tick": null }
+  },
+  "fraser": [
+    { "ord": "Ka-To", "betyder": "How are you", "typ": "fraga" },
+    { "ord": "To-Ka", "betyder": "you are How", "typ": "pastaende" }
+  ],
+  "regel": "Ordfoljden bar betydelsen. Kastad ordning ger ny mening."
+}

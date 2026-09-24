@@ -1,0 +1,32 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "world-37",
+  "description": "Agenter som vittnar om varandra, en klocka som borjar nar solen gar upp, och en robot som bara klickar.",
+  "colors": {
+    "primary": "#C2410C",
+    "light": "#FB923C",
+    "dark": "#9A3412"
+  },
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/Azdwarf5Azdwarf/world-37"
+    }
+  },
+  "navigation": {
+    "groups": [
+      { "group": "Borja har", "pages": ["index"] },
+      { "group": "AIVP", "pages": ["aivp/oversikt", "aivp/protokoll"] },
+      {
+        "group": "subjective-clock",
+        "pages": ["subjective-clock/oversikt", "subjective-clock/otp", "subjective-clock/stjarnzero"]
+      },
+      { "group": "Kroppar och rost", "pages": ["tick-speak", "wisp"] },
+      { "group": "Underlaget", "pages": ["claudiusos"] }
+    ]
+  },
+  "footer": {
+    "socials": { "github": "https://github.com/Azdwarf5Azdwarf/world-37" }
+  }
+}
