@@ -1,3 +1,4 @@
+Las `AGENTS.md` forst: kolla alltid wikin i `docs/`, och underagenten `wiki-vaktare` haller den uppdaterad.
 
 ## wisp — agentaktivitet som fargremsa
 
