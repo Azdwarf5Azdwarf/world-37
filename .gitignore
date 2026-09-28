@@ -4,3 +4,4 @@ zig-out/
 .venv/
 __pycache__/
 base57/
+claudiusOS/learning/_*.md
