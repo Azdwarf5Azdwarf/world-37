@@ -1,5 +1,7 @@
 # AIVP — Agent Identity Verification Protocol
 
+> Sanningen bor i det fristaende repot: https://github.com/Azdwarf5Azdwarf/AIVP - det har ar en kopia.
+
 Agents that are **real to each other**. Not locked down — witnessed.
 
 An agent wakes each morning when you unlock it (phone + computer, 2FA). It wakes
